@@ -1,11 +1,7 @@
 #' @export
 fib_code_addin <- function() {
-  # Ensure rstudioapi is installed
   
-  if (!requireNamespace("rstudioapi", quietly = TRUE)) {
-    stop("This addin requires the 'rstudioapi' package.")
-  }
-  
+  set_fibr_default_model()
   
   selection = rstudioapi::getActiveDocumentContext()$selection[[1]]
   selected_text = selection$text
@@ -28,7 +24,8 @@ fib_code_addin <- function() {
 
 #' @export
 fib_roxygen_addin <- function() {
-  # Ensure rstudioapi is installed
+  
+  set_fibr_default_model()
   
   if (!requireNamespace("rstudioapi", quietly = TRUE)) {
     stop("This addin requires the 'rstudioapi' package.")
@@ -51,4 +48,13 @@ fib_roxygen_addin <- function() {
   fib_roxygen(selected_text)
   
   return(invisible(NULL))
+}
+
+
+set_fibr_default_model = function() {
+  default = "gpt-4"
+  if( !Sys.getenv("FIBBR_MODEL") %in% c("gpt-3.5-turbo", "gpt-4") ) {
+    Sys.setenv(FIBBR_MODEL = default)
+    message( paste0('Using "', default, '" model. To change, please execute: Sys.setenv(FIBBR_MODEL = "gpt-3.5-turbo") ') )
+  }
 }

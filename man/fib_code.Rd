@@ -8,7 +8,7 @@ fib_code(
   prompt,
   history = NULL,
   stream = TRUE,
-  model = options("fib_model")[[1]]
+  model = Sys.getenv("FIBBR_MODEL")
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ fib_code(
 
 \item{stream}{(Optional) A logical value indicating whether to stream the output. Default is TRUE.}
 
-\item{model}{(Optional) A character string specifying the model to be used. Default is the first element of the "fib_model" option.}
+\item{model}{(Optional) A character string specifying the model to be used. Define via options, e.g. options(fib_model = "gpt-3.5-turbo").}
 }
 \value{
 The result of the \code{fib()} function call.

@@ -8,9 +8,9 @@ fib(
   prompt,
   model,
   system_start_prompt = "You want to fib.",
-  user_prompt_prefix,
   history = NULL,
-  stream = TRUE
+  stream = TRUE,
+  logit_bias
 )
 }
 \arguments{
@@ -19,8 +19,6 @@ fib(
 \item{model}{A character string representing the model to be used.}
 
 \item{system_start_prompt}{A character string for the system's starting prompt (default: "You want to fib.").}
-
-\item{user_prompt_prefix}{A character string for the user's prompt prefix.}
 
 \item{history}{A list of previous interactions (default: NULL).}
 

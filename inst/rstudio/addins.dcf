@@ -3,13 +3,7 @@ Description: Just make shit up.
 Binding: fib_code_addin
 Interactive: true
 
-Name: Fib docstring
+Name: Fib roxygen
 Description: Nobody will read this anyway, it's cool.
 Binding: fib_roxygen_addin
-Interactive: true
-
-
-Name: Fibb_tester
-Description: Fuck if I know
-Binding: fibb_test
 Interactive: true

@@ -2,13 +2,13 @@
 % Please edit documentation in R/fibb.R
 \name{fib_roxygen}
 \alias{fib_roxygen}
-\title{Generate a Fibonacci Sequence Roxygen Docstring}
+\title{Generate an Roxygen Docstring}
 \usage{
 fib_roxygen(
   prompt,
   history = NULL,
   stream = TRUE,
-  model = options("fib_model")[[1]]
+  model = Sys.getenv("FIBBR_MODEL")
 )
 }
 \arguments{

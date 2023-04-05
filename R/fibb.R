@@ -1,9 +1,4 @@
 
-
-
-options(fib_model = "gpt-3.5-turbo")
-
-
 #' Fib Code Wrapper Function
 #'
 #' This function is a wrapper for the `fib()` function, which takes a prompt and additional
@@ -13,10 +8,12 @@ options(fib_model = "gpt-3.5-turbo")
 #' @param prompt A character string representing the prompt for the R script.
 #' @param history (Optional) A list of previous interactions to be passed to the `fib()` function.
 #' @param stream (Optional) A logical value indicating whether to stream the output. Default is TRUE.
-#' @param model (Optional) A character string specifying the model to be used. Default is the first element of the "fib_model" option.
+#' @param model (Optional) A character string specifying the model to be used. Define via options, e.g. options(fib_model = "gpt-3.5-turbo").
 #'
 #' @return The result of the `fib()` function call.
 #' @export
+#'
+#' @importFrom magrittr %>%
 #'
 #' @examples
 #' fib_code("Calculate the sum of 1 to 10")
@@ -24,7 +21,7 @@ options(fib_model = "gpt-3.5-turbo")
 fib_code = function(prompt,
                     history = NULL,
                     stream = TRUE,
-                    model = options("fib_model")[[1]] ) {
+                    model = Sys.getenv("FIBBR_MODEL") ) {
   
   prompt = paste0('# R script: ', prompt)
   
@@ -39,14 +36,15 @@ fib_code = function(prompt,
       system_start_prompt = system_start_prompt,
       history = history,
       stream = stream,
-      model = model)
+      model = model,
+      logit_bias = list("15506" = -100, "63" = -100))
   
   rstudioapi::insertText(text = "\n")
 }
 
 
 
-#' Generate a Fibonacci Sequence Roxygen Docstring
+#' Generate an Roxygen Docstring
 #'
 #' This function generates a roxygen docstring for a given code snippet without repeating the code.
 #' It utilizes the `fib()` function to create the docstring based on the provided prompt and other parameters.
@@ -66,7 +64,7 @@ fib_code = function(prompt,
 fib_roxygen = function(prompt,
                        history = NULL,
                        stream = TRUE,
-                       model = options("fib_model")[[1]] ) {
+                       model = Sys.getenv("FIBBR_MODEL") ) {
   
   prompt = paste0('Please write an roxygen docstring for this code (do not repeat the code under any circumstances!)', 
                   prompt, 
@@ -81,7 +79,6 @@ fib_roxygen = function(prompt,
   
   fib(prompt = prompt,
       system_start_prompt = system_start_prompt,
-      user_prompt_prefix = user_prompt_prefix,
       history = history,
       stream = stream,
       model = model)
@@ -98,7 +95,6 @@ fib_roxygen = function(prompt,
 #' @param prompt A character string representing the user's input prompt.
 #' @param model A character string representing the model to be used.
 #' @param system_start_prompt A character string for the system's starting prompt (default: "You want to fib.").
-#' @param user_prompt_prefix A character string for the user's prompt prefix.
 #' @param history A list of previous interactions (default: NULL).
 #' @param stream A logical value indicating whether to stream the response (default: TRUE).
 #'
@@ -112,11 +108,11 @@ fib_roxygen = function(prompt,
 fib = function(prompt, 
                model,
                system_start_prompt = "You want to fib.",
-               user_prompt_prefix,
                history = NULL,
-               stream = TRUE) {
-  body = create_request_body(model, system_start_prompt, prompt, history, stream)
-  send_request(body)
+               stream = TRUE,
+               logit_bias) {
+  body = create_request_body(model, system_start_prompt, prompt, history, stream, logit_bias)
+  send_request(body, callback_function = process_stream_rstudio)
   return(invisible(TRUE))
 }
 
@@ -128,7 +124,12 @@ fib = function(prompt,
 
 
 
-create_request_body = function(model, system_start_prompt, prompt, history, stream) {
+create_request_body = function(model, 
+                               system_start_prompt, 
+                               prompt, 
+                               history, 
+                               stream,
+                               logit_bias) {
   token = fib_get_token()
   
   if(is.null(history)){
@@ -163,7 +164,7 @@ create_request_body = function(model, system_start_prompt, prompt, history, stre
 
 
 
-send_request = function(body) {
+send_request = function(body, callback_function = process_stream_rstudio) {
   url = "https://api.openai.com/v1/chat/completions"
   headers = c(
     "Content-Type" = "application/json",
@@ -175,10 +176,8 @@ send_request = function(body) {
   POST_stream(url = url,
               json_body = json_body,
               headers = headers,
-              callback_function = process_stream )
+              callback_function = callback_function )
 }
-
-
 
 
 POST_stream = function(url,
@@ -196,7 +195,13 @@ POST_stream = function(url,
 
 
 
-process_current_chunk = function(data) {
+#' Process Stream RStudio
+#'
+#' This function processes the input data stream and inserts the resulting text into the RStudio console.
+#'
+#' @importFrom magrittr %>%
+process_stream_rstudio = function(data) {
+  
   subchunks = 
     rawToChar(data) %>% 
     strsplit(., split = '\n\n') %>% 
@@ -209,24 +214,22 @@ process_current_chunk = function(data) {
   subchunks_json = subchunks %>%
     lapply(jsonlite::fromJSON)
   
+  if(!is.null(subchunks_json[[1]]$error)) {
+    stop(subchunks_json[[1]]$error$message)
+  }
+  
   subchunks_txt_collapsed = 
     subchunks_json %>%
     lapply(., function(chunky) { chunky$choices$delta$content }) %>%
     unlist() %>%
     paste0(collapse = "")
   
-  return( list("txt"=subchunks_txt_collapsed,
-               "jsons" = subchunks_json) )
+  rstudioapi::insertText(subchunks_txt_collapsed)
 }
 
 
-process_stream = function(data) {
-  this = process_current_chunk(data)
-  if( grepl('^>', this$txt) ) {
-    #stop("I don't have a clue.")
-  }
-  rstudioapi::insertText(this$txt)
-}
+
+
 
 
 
@@ -245,7 +248,5 @@ fib_get_token = function() {
 set_token = function() {
   keyring::key_set("fibbr_openai", username = Sys.info()["user"], prompt = "Open AI API token: ")
 }
-
-
 
 

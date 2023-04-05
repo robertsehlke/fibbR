@@ -1,14 +1,14 @@
 Package: fibbR
 Title: Fib!
-Version: 0.0.1
+Version: 0.0.4
 Authors@R: 
     person("Robert", "Sehlke", , "first.last@example.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: None
 Encoding: UTF-8
 Imports:
     httr,
-    keyring
+    keyring,
+    magrittr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
