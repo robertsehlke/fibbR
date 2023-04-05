@@ -6,11 +6,12 @@
 \usage{
 fib(
   prompt,
-  model,
-  system_start_prompt = "You want to fib.",
+  model = Sys.getenv("FIBBR_MODEL"),
+  system_start_prompt = "You are helpful, but consise.",
   history = NULL,
-  stream = TRUE,
-  logit_bias
+  stream = FALSE,
+  logit_bias = NULL,
+  temperature = 0
 )
 }
 \arguments{

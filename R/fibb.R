@@ -106,14 +106,21 @@ fib_roxygen = function(prompt,
 #' fib("What is the meaning of life?", "gpt-3.5-turbo")
 #' }
 fib = function(prompt, 
-               model,
-               system_start_prompt = "You want to fib.",
+               model = Sys.getenv("FIBBR_MODEL"),
+               system_start_prompt = "You are helpful, but consise.",
                history = NULL,
-               stream = TRUE,
-               logit_bias) {
-  body = create_request_body(model, system_start_prompt, prompt, history, stream, logit_bias)
-  send_request(body, callback_function = process_stream_rstudio)
-  return(invisible(TRUE))
+               stream = FALSE,
+               logit_bias = NULL,
+               temperature = 0) {
+  
+  if(model == "") {
+    set_fibr_default_model()
+    model = Sys.getenv("FIBBR_MODEL")
+  }
+  
+  body = create_request_body(model, system_start_prompt, prompt, history, stream, logit_bias, temperature)
+  response = send_request(body)
+  return(response)
 }
 
 
@@ -129,7 +136,8 @@ create_request_body = function(model,
                                prompt, 
                                history, 
                                stream,
-                               logit_bias) {
+                               logit_bias,
+                               temperature) {
   token = fib_get_token()
   
   if(is.null(history)){
@@ -145,18 +153,19 @@ create_request_body = function(model,
     )
   } else {
     input_messages = c(history,
-                       list(
+                       list(list(
                          role = "user",
                          content = prompt
                        ))
+                       )
   }
   
   body = list(
     model = model,
     messages = input_messages,
     stream = stream,
-    temperature = 0, 
-    logit_bias = list("15506" = -100, "63" = -100)
+    temperature = temperature, 
+    logit_bias = logit_bias
   )
   
   return(body)
@@ -164,7 +173,7 @@ create_request_body = function(model,
 
 
 
-send_request = function(body, callback_function = process_stream_rstudio) {
+send_request = function(body) {
   url = "https://api.openai.com/v1/chat/completions"
   headers = c(
     "Content-Type" = "application/json",
@@ -173,10 +182,25 @@ send_request = function(body, callback_function = process_stream_rstudio) {
   
   json_body = jsonlite::toJSON(body, auto_unbox = TRUE)
   
-  POST_stream(url = url,
-              json_body = json_body,
-              headers = headers,
-              callback_function = callback_function )
+  if(body$stream) {
+    POST_stream(url = url,
+                json_body = json_body,
+                headers = headers,
+                callback_function = process_stream_rstudio )
+    return(invisible(NULL))
+  } else {
+    response = httr::POST(url, body = body, encode = "json", httr::add_headers(.headers = headers))
+    parsed = jsonlite::fromJSON( httr::content(response, "text", encoding = "UTF-8"))
+    
+    updated_history =
+      c(body$messages,
+        list(list("role" = parsed$choices$message$role,
+                  "content" = parsed$choices$message$content)))
+    
+    message(parsed$choices$message$content)
+    
+    return( updated_history )
+  }
 }
 
 
@@ -228,9 +252,13 @@ process_stream_rstudio = function(data) {
 }
 
 
-
-
-
+set_fibr_default_model = function() {
+  default = "gpt-4"
+  if( !Sys.getenv("FIBBR_MODEL") %in% c("gpt-3.5-turbo", "gpt-4") ) {
+    Sys.setenv(FIBBR_MODEL = default)
+    message( paste0('Using "', default, '" model. To change, please execute: Sys.setenv(FIBBR_MODEL = "gpt-3.5-turbo") ') )
+  }
+}
 
 
 
@@ -248,5 +276,8 @@ fib_get_token = function() {
 set_token = function() {
   keyring::key_set("fibbr_openai", username = Sys.info()["user"], prompt = "Open AI API token: ")
 }
+
+
+
 
 
