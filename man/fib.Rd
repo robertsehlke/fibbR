@@ -30,7 +30,7 @@ An invisible TRUE value upon successful execution.
 }
 \description{
 This function sends a request to a specified model with a given prompt and optional parameters.
-It returns an invisible TRUE value upon successful execution.
+It returns a nested list with the response history, including the latest response.
 }
 \examples{
 \dontrun{
