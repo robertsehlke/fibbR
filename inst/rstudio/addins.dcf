@@ -1,9 +1,9 @@
 Name: Fib code
-Description: Just make shit up.
+Description: Write some R code based on the selected snippet!
 Binding: fib_code_addin
 Interactive: true
 
 Name: Fib roxygen
-Description: Nobody will read this anyway, it's cool.
+Description: Write an Roxygen docstring for the selected snippet!
 Binding: fib_roxygen_addin
 Interactive: true

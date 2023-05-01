@@ -32,7 +32,8 @@ fib_code = function(prompt,
          'If you encounter R script that is not valid, answer with "# ???", nothing else.') %>%
     unlist() %>% paste0(collapse = "")
   
-  fib(prompt = prompt,
+  out = 
+    fib(prompt = prompt,
       system_start_prompt = system_start_prompt,
       history = history,
       stream = stream,
@@ -40,6 +41,7 @@ fib_code = function(prompt,
       logit_bias = list("15506" = -100, "63" = -100))
   
   rstudioapi::insertText(text = "\n")
+  return(invisible(out))
 }
 
 
@@ -90,7 +92,7 @@ fib_roxygen = function(prompt,
 #' Fib Function
 #'
 #' This function sends a request to a specified model with a given prompt and optional parameters.
-#' It returns an invisible TRUE value upon successful execution.
+#' It returns a nested list with the response history, including the latest response.
 #'
 #' @param prompt A character string representing the user's input prompt.
 #' @param model A character string representing the model to be used.
@@ -120,7 +122,7 @@ fib = function(prompt,
   
   body = create_request_body(model, system_start_prompt, prompt, history, stream, logit_bias, temperature)
   response = send_request(body)
-  return(response)
+  return(invisible(response))
 }
 
 
@@ -273,7 +275,22 @@ fib_get_token = function() {
   return(token)
 }
 
-set_token = function() {
+
+#'
+#' Set the API token for the FibbR package
+#'
+#' This function sets the API token for the FibbR package using the keyring package.
+#' It prompts the user to enter their Open AI API token and stores it securely in the system keyring.
+#' The token is associated with the "fibbr_openai" service and the current user's username.
+#'
+#' @return NULL, invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#'   fib_set_token()
+#' }
+
+fib_set_token = function() {
   keyring::key_set("fibbr_openai", username = Sys.info()["user"], prompt = "Open AI API token: ")
 }
 

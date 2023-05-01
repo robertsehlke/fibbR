@@ -1,6 +1,6 @@
 Package: fibbR
 Title: Fib!
-Version: 0.0.5
+Version: 0.0.6
 Authors@R: 
     person("Robert", "Sehlke", , "first.last@example.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
@@ -9,7 +9,9 @@ Encoding: UTF-8
 Imports:
     httr,
     keyring,
-    magrittr
+    magrittr,
+    curl,
+    jsonlite
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 
