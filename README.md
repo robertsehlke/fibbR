@@ -1,14 +1,16 @@
 # fibbR - a fairly minimal GPT addin for RStudio
 
-Or: yet another coding assistant. The package makes use of the RStudio API to stream a text response directly to the editor, based on a selected piece of code.
+![](fibbR_demo.gif)
+
 
 Why did I write this? Mostly for fun and the streaming functionality, which I hadn't seen in another native R package / RStudio addin at that point (might have changed by now).
 
-The package includes the following functions:
+The package includes the following functions (and addins, see below):
 
 - `fib_code()`: Generates an R script based on a given prompt.
 - `fib_roxygen()`: Generates a roxygen docstring for a given code snippet.
 - `fib()`: Sends a request to the specified model with a given prompt and optional parameters.
+
 
 ## Installation
 
