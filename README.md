@@ -86,7 +86,6 @@ By default responses are streamed to the editor for `fib_code` and `fib_roxygen`
 
 ### Bugs and caveats
 
-* While generating text in streaming mode, don't click elsewhere in the editor, or it will continue where you just clicked.
 * Sometimes generates extra parentheses at the end (RStudio auto-closing gone rogue?).
 * Works **much** better with GPT-4.
 * The package is called fibbR ("fibber") because GPT-4, while much better than 3.5, will still _make shit up_ frequently - such as trying to make this package about Fibonacci.
