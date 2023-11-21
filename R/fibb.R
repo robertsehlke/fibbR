@@ -23,22 +23,21 @@ fib_code = function(prompt,
                     stream = TRUE,
                     model = Sys.getenv("FIBBR_MODEL") ) {
   
-  prompt = paste0('# R script: ', prompt)
-  
   system_start_prompt = 
     list('You are an expert R programmer.',
          'You write code. You dont explain because youre in a hurry.',
+         'You realise the situation is serious. People will die if you do not deliver.',
          'If you provide any explanations, you make a comment using the # symbol.',
          'If you encounter R script that is not valid, answer with "# ???", nothing else.') %>%
     unlist() %>% paste0(collapse = "")
   
   out = 
     fib(prompt = prompt,
-      system_start_prompt = system_start_prompt,
-      history = history,
-      stream = stream,
-      model = model,
-      logit_bias = list("15506" = -100, "63" = -100))
+        system_start_prompt = system_start_prompt,
+        history = history,
+        stream = stream,
+        model = model,
+        logit_bias = list("15506" = -100, "63" = -100))
   
   rstudioapi::insertText(text = "\n")
   return(invisible(out))
@@ -159,7 +158,7 @@ create_request_body = function(model,
                          role = "user",
                          content = prompt
                        ))
-                       )
+    )
   }
   
   body = list(
@@ -214,53 +213,81 @@ POST_stream = function(url,
   curl_handle <- curl::new_handle()
   curl::handle_setheaders(curl_handle, .list = headers)
   curl::handle_setopt(curl_handle, post = TRUE, postfields = json_body)
-  curl::curl_fetch_stream(url, handle = curl_handle, fun = callback_function)
+  
+  rstudio_contextual_callback = create_rstudio_process_stream_function(remove_sequences = c('```', 'r\n') )
+  
+  curl::curl_fetch_stream(url, handle = curl_handle, fun = rstudio_contextual_callback)
   
   return(invisible(TRUE))
 }
 
 
-
-#' Process Stream RStudio
-#'
-#' This function processes the input data stream and inserts the resulting text into the RStudio console.
-#'
-#' @importFrom magrittr %>%
-process_stream_rstudio = function(data) {
+create_rstudio_process_stream_function = function(remove_sequences) {
   
-  subchunks = 
-    rawToChar(data) %>% 
-    strsplit(., split = '\n\n') %>% 
-    unlist %>% 
-    sapply(., function(x) { gsub('data: ', replacement = '', x = x) } ) %>%
-    unname()
+  document_id = rstudioapi::getActiveDocumentContext()$id
+  omit_these = remove_sequences
   
-  subchunks = subchunks[!subchunks=='[DONE]']
-  
-  subchunks_json = subchunks %>%
-    lapply(jsonlite::fromJSON)
-  
-  if(!is.null(subchunks_json[[1]]$error)) {
-    stop(subchunks_json[[1]]$error$message)
+  function(data) {
+    
+    subchunks = 
+      rawToChar(data) %>% 
+      strsplit(., split = '\n\n') %>% 
+      unlist %>% 
+      sapply(., function(x) { gsub('data: ', replacement = '', x = x) }) %>%
+      unname()
+    
+    subchunks = subchunks[!subchunks == '[DONE]']
+    
+    subchunks_json = subchunks %>%
+      lapply(jsonlite::fromJSON)
+    
+    if (!is.null(subchunks_json[[1]]$error)) {
+      stop(subchunks_json[[1]]$error$message)
+    }
+    
+    subchunks_txt_collapsed = 
+      subchunks_json %>%
+      lapply(., function(chunky) { chunky$choices$delta$content }) %>%
+      unlist() %>%
+      paste0(collapse = "") %>%
+      { 
+        tmp = .
+        for(omit_this in omit_these) {
+          tmp = gsub(omit_this, "", tmp, fixed = T)
+        }
+        tmp
+      }
+    rstudioapi::insertText(subchunks_txt_collapsed, id = document_id)
   }
-  
-  subchunks_txt_collapsed = 
-    subchunks_json %>%
-    lapply(., function(chunky) { chunky$choices$delta$content }) %>%
-    unlist() %>%
-    paste0(collapse = "")
-  
-  rstudioapi::insertText(subchunks_txt_collapsed)
 }
 
 
+
 set_fibr_default_model = function() {
-  default = "gpt-4"
-  if( !Sys.getenv("FIBBR_MODEL") %in% c("gpt-3.5-turbo", "gpt-4") ) {
+  #default = "gpt-4"
+  default = "gpt-4-1106-preview"
+  engines = get_openai_engines()
+  if( !Sys.getenv("FIBBR_MODEL") %in% engines ) {
     Sys.setenv(FIBBR_MODEL = default)
     message( paste0('Using "', default, '" model. To change, please execute: Sys.setenv(FIBBR_MODEL = "gpt-3.5-turbo") ') )
   }
 }
+
+get_openai_engines = function() {
+  url = "https://api.openai.com/v1/engines"
+  headers = c(
+    'Authorization' = paste('Bearer', keyring::key_get("fibbr_openai") ),
+    'Content-Type' = 'application/json'
+  )
+  response = httr::GET(url, add_headers(.headers=headers))
+  
+  engines = jsonlite::fromJSON(content(response, "text"))$data %>%
+    dplyr::filter(ready) %>%
+    `[[`("id")
+  
+  return(engines)
+}
+
 
 
 
