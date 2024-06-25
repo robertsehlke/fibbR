@@ -7,3 +7,8 @@ Name: Fib roxygen
 Description: Write an Roxygen docstring for the selected snippet!
 Binding: fib_roxygen_addin
 Interactive: true
+
+Name: Fib code with context
+Description: Write some R code based on the full context of the current document (careful with tokens now)!
+Binding: fib_code_with_context_addin
+Interactive: true

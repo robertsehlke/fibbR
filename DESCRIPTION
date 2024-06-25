@@ -1,6 +1,6 @@
 Package: fibbR
 Title: Fib!
-Version: 0.0.7
+Version: 0.0.8
 Authors@R: 
     person("Robert", "Sehlke", , "first.last@example.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).

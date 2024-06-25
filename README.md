@@ -24,15 +24,13 @@ devtools::install_github("https://github.com/robertsehlke/fibbr")
 
 ### Model
 
-Set the default model using `options(fib_model = "gpt-4")`.
-
-`fib_model` must be either `gpt-4` (default and much recommended for R) or `gpt-3.5-turbo`.
+Set the default model using `fib_set_default_api("openai")` (gpt-4o) or `fib_set_default_api("claude")` (claude 3.5 sonnet).
 
 ### Authentication
 
-On first use of one of the functions in this package you will be prompted for your OpenAI API key. This key will be saved in your system credential store using the [keyring](https://cran.r-project.org/web/packages/keyring/index.html) package.
+On first use of one of the functions in this package, you will be prompted for your API key (OpenAI or Claude). This key will be saved in your system credential store using the [keyring](https://cran.r-project.org/web/packages/keyring/index.html) package.
 
-If you need to set the token again, e.g. because it expired, you can use the `fib_set_token()` function to call up the prompt manually.
+If you need to set the token again, e.g., because it expired, you can use the fib_set_token("openai") or fib_set_token("claude") function to call up the prompt manually.
 
 ### Calling functions directly
 
@@ -46,7 +44,7 @@ fib_code("Calculate the sum of 1 to 10")
 fib_roxygen("example_function = function(x) { return(x + 1) }")
 
 # Send a custom request to the model
-fib("What is the meaning of life?", "gpt-3.5-turbo")
+fib("What is the meaning of life?", api="openai")
 ```
 
 ### RStudio Addins
@@ -55,6 +53,7 @@ Addins are also available for use in RStudio:
 
 - `fib_code_addin()`: Generates code based on the selected text in the editor.
 - `fib_roxygen_addin()`: Generates a roxygen docstring for the selected code snippet.
+- `fib_code_with_context_addin()`: Generates code based on the selected text and the full file context.
 
 
 ## Other considerations
@@ -86,6 +85,5 @@ By default responses are streamed to the editor for `fib_code` and `fib_roxygen`
 
 ### Bugs and caveats
 
-* Sometimes generates extra parentheses at the end (RStudio auto-closing gone rogue?).
-* Works **much** better with GPT-4.
-* The package is called fibbR ("fibber") because GPT-4, while much better than 3.5, will still _make shit up_ frequently - such as trying to make this package about Fibonacci.
+* Cosmetic: if "Insert matching parens/quotes" is active in the RStudio code settings, auto-generated streamed text can result in trailing parentheses.
+* The package is called fibbR ("fibber") because LLMs will make shit up.
