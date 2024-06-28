@@ -1,6 +1,6 @@
 Package: fibbR
 Title: Fib!
-Version: 0.0.8
+Version: 0.0.9
 Authors@R: 
     person("Robert", "Sehlke", , "first.last@example.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
@@ -12,6 +12,10 @@ Imports:
     magrittr,
     curl,
     jsonlite
+Suggests:
+    testthat (>= 3.0.0),
+    mockery
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
+Config/testthat/edition: 3
 

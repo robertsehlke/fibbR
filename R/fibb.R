@@ -1,5 +1,5 @@
 # Environment variables for configuration
-Sys.setenv(FIBBR_DEFAULT_MODEL = "gpt-4o")
+Sys.setenv(FIBBR_OPENAI_MODEL = "gpt-4o")
 Sys.setenv(FIBBR_CLAUDE_MODEL = "claude-3-5-sonnet-20240620")
 
 
@@ -32,7 +32,6 @@ get_default_api = function() {
 #' Main FibbR function
 #'
 #' @param prompt A character string representing the user's input prompt.
-#' @param model A character string representing the model to be used.
 #' @param api A character string specifying the API to use: "openai" or "claude".
 #' @param system_start_prompt A character string for the system's starting prompt.
 #' @param history A list of previous interactions.
@@ -44,8 +43,7 @@ get_default_api = function() {
 #' @return An invisible response object.
 #' @export
 fib = function(prompt, 
-               model = Sys.getenv("FIBBR_MODEL"),
-               api = "openai",
+               api = get_default_api(),
                system_start_prompt = "You are helpful, but concise.",
                history = NULL,
                stream = FALSE,
@@ -54,10 +52,11 @@ fib = function(prompt,
                max_tokens = 1000) {
   
   if (api == "openai") {
-    model = validate_openai_model(model)
+    model = Sys.getenv("FIBBR_OPENAI_MODEL")
     body = create_openai_request_body(model, system_start_prompt, prompt, history, stream, logit_bias, temperature, max_tokens)
     response = send_api_request(body, api, stream)
   } else if (api == "claude") {
+    model = Sys.getenv("FIBBR_CLAUDE_MODEL")
     body = create_claude_request_body(prompt, system_start_prompt, history, stream, temperature, max_tokens)
     response = send_api_request(body, api, stream)
   } else {
@@ -66,6 +65,7 @@ fib = function(prompt,
   
   invisible(response)
 }
+
 
 #' Create request body for OpenAI API
 create_openai_request_body = function(model, system_start_prompt, prompt, history, stream, logit_bias, temperature, max_tokens) {
@@ -105,6 +105,8 @@ create_claude_request_body = function(prompt, system_start_prompt, history, stre
     max_tokens = max_tokens
   )
 }
+
+
 
 #' Send API request
 send_api_request = function(body, api, stream) {
@@ -234,34 +236,7 @@ process_claude_stream = function(data, document_id) {
   }
 }
 
-#' Validate OpenAI model
-validate_openai_model = function(model) {
-  if (model == "") {
-    model = Sys.getenv("FIBBR_DEFAULT_MODEL")
-    message(paste0('Using "', model, '" model. To change, please execute: Sys.setenv(FIBBR_MODEL = "your-preferred-model")'))
-  }
-  
-  engines = get_openai_engines()
-  if (!model %in% engines) {
-    stop(paste("Invalid model:", model, ". Available models:", paste(engines, collapse = ", ")))
-  }
-  
-  model
-}
 
-#' Get OpenAI engines
-get_openai_engines = function() {
-  url = "https://api.openai.com/v1/engines"
-  headers = c(
-    'Authorization' = paste('Bearer', get_api_token("openai")),
-    'Content-Type' = 'application/json'
-  )
-  response = httr::GET(url, httr::add_headers(.headers=headers))
-  
-  jsonlite::fromJSON(httr::content(response, "text"))$data %>%
-    dplyr::filter(ready) %>%
-    `[[`("id")
-}
 
 #' Get API token
 get_api_token = function(api) {
@@ -288,18 +263,16 @@ fib_set_token = function(api) {
 #' @param prompt A character string representing the code generation prompt.
 #' @param history A list of previous interactions.
 #' @param stream A logical value indicating whether to stream the response.
-#' @param model A character string specifying the model to be used.
 #' @param api A character string specifying the API to use: "openai" or "claude".
 #' @param max_tokens Maximum number of tokens to generate.
 #'
 #' @return An invisible response object.
 #' @export
 fib_code = function(prompt,
-                     history = NULL,
-                     stream = TRUE,
-                     model = Sys.getenv("FIBBR_MODEL"),
-                     api = get_default_api(),
-                     max_tokens = 1000) {
+                    history = NULL,
+                    stream = TRUE,
+                    api = get_default_api(),
+                    max_tokens = 1000) {
   
   system_start_prompt = paste(
     'You are an expert R programmer.',
@@ -311,39 +284,37 @@ fib_code = function(prompt,
   )
   
   out = fib(prompt = prompt,
-             system_start_prompt = system_start_prompt,
-             history = history,
-             stream = stream,
-             model = model,
-             api = api,
-             logit_bias = if(api == "openai") list("15506" = -100, "63" = -100) else NULL,
-             max_tokens = max_tokens)
+            system_start_prompt = system_start_prompt,
+            history = history,
+            stream = stream,
+            api = api,
+            logit_bias = if(api == "openai") list("15506" = -100, "63" = -100) else NULL,
+            max_tokens = max_tokens)
   
   rstudioapi::insertText(text = "\n")
   invisible(out)
 }
+
 
 #' Generate Roxygen docstring using FibbR
 #'
 #' @param prompt A character string representing the code for which to generate a docstring.
 #' @param history A list of previous interactions.
 #' @param stream A logical value indicating whether to stream the response.
-#' @param model A character string specifying the model to be used.
 #' @param api A character string specifying the API to use: "openai" or "claude".
 #' @param max_tokens Maximum number of tokens to generate.
 #'
 #' @return An invisible response object.
 #' @export
 fib_roxygen = function(prompt,
-                        history = NULL,
-                        stream = TRUE,
-                        model = Sys.getenv("FIBBR_MODEL"),
-                        api = get_default_api(),
-                        max_tokens = 1000) {
+                       history = NULL,
+                       stream = TRUE,
+                       api = get_default_api(),
+                       max_tokens = 1000) {
   
   prompt = paste0('Please write an roxygen docstring for this code (do not repeat the code under any circumstances!)', 
-                   prompt, 
-                   '\nDocstring:')
+                  prompt, 
+                  '\nDocstring:')
   
   system_start_prompt = paste(
     'You are an expert R programmer. You love writing documentation.',
@@ -357,7 +328,8 @@ fib_roxygen = function(prompt,
       system_start_prompt = system_start_prompt,
       history = history,
       stream = stream,
-      model = model,
       api = api,
       max_tokens = max_tokens)
 }
+
+
